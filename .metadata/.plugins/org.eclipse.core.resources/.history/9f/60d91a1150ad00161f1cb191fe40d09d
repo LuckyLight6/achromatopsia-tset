@@ -1,0 +1,219 @@
+package com.remy;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
+
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JTextArea;
+import javax.swing.UIManager;
+
+import org.jb2011.lnf.beautyeye.BeautyEyeLNFHelper;
+
+public class AchromatopsiaTest {
+	private final static int KIND = 3; // 原色的数量
+	private final static int MIN = 0; // 滚动条的最小值
+	private final static int MAX = 256; // 滚动条的最大值
+	private final static String[] COLORS = { "红", "绿", "蓝" };
+	private int tolerance = 15; // 允许的误差，可以自己设置，越小则越难通过
+	private int standardRed, standardBlue, standardGreen; // 机器产生的标准三原色
+
+	private JFrame mainFrame; // 主窗口
+	private JTextArea modelArea; // 显示标准色彩
+	private JTextArea userArea; // 显示用户混合的色彩
+	private JScrollBar[] colorBar; // 三原色的调整条
+	private JButton nextButton; // 开始或者下一幅按钮
+	private JButton okButton; // 确定按钮
+	private JLabel[] colorLabel; // 显示三原色名称的标签
+	private JLabel[] minLabel; // 三原色最小值标签
+	private JLabel[] colorValue; // 显示用户拖动的色彩的值
+	private JLabel[] maxLabel; // 三原色的最大值标签
+	private JPanel areaPanel; // 放置显示色彩文本域的面板
+	private JPanel[] barPanel; // 放置三原色调整条的面板
+	private JPanel[] labelPanel; // 放置标签的面板
+	private JPanel buttonPanel; // 放置按钮的面板
+	private Container con; // 放置面板的容器
+	private HandleButtonClick handleButton; // 处理按钮单击事件的内部类对象
+
+	/**
+	 * 处理按钮单击事件的内部类
+	 * 
+	 * @author Lucky Light
+	 */
+	public class HandleButtonClick implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if (e.getSource() == nextButton) {
+				// 随机产生标准色彩
+				standardRed = (int) (Math.random() * 1000) % MAX;
+				standardBlue = (int) (Math.random() * 1000) % MAX;
+				standardGreen = (int) (Math.random() * 1000) % MAX;
+
+				// 设置滚动条初始值为最大
+				for (int i = 0; i < KIND; i++) {
+					colorBar[i].setValue(MAX - 1);
+				}
+
+				modelArea.setBackground(new Color(standardRed, standardGreen, standardBlue)); // 显示标准色彩
+				userArea.setBackground(new Color(MAX - 1, MAX - 1, MAX - 1)); // 设置用户调整的颜色为白色
+
+				// 改变按钮的显示文字
+				if (nextButton.getText().equals("开始")) {
+					nextButton.setText("下一幅");
+
+					if (!okButton.isEnabled()) {
+						okButton.setEnabled(true);
+					}
+				}
+			} else {
+				boolean correct = true;
+
+				if (Math.abs(colorBar[0].getValue() - standardRed) > tolerance) {
+					correct = false;
+				}
+				if (Math.abs(colorBar[1].getValue() - standardGreen) > tolerance) {
+					correct = false;
+				}
+				if (Math.abs(colorBar[2].getValue() - standardBlue) > tolerance) {
+					correct = false;
+				}
+
+				if (correct) {
+					JOptionPane.showMessageDialog(mainFrame, "颜色匹配正确");
+				} else {
+					JOptionPane.showMessageDialog(mainFrame, "颜色匹配错误");
+				}
+			}
+		}
+	}
+
+	/**
+	 * main方法，程序的入口
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		// 将程序界面更换成Beauty Eye的外观
+		try {
+			BeautyEyeLNFHelper.frameBorderStyle = BeautyEyeLNFHelper.FrameBorderStyle.generalNoTranslucencyShadow;
+			UIManager.put("RootPane.setupButtonVisible", false);
+			org.jb2011.lnf.beautyeye.BeautyEyeLNFHelper.launchBeautyEyeLNF();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		// 调用无参构造方法实例化本类
+		new AchromatopsiaTest();
+	}
+
+	/**
+	 * 无参构造方法，用来实例化类
+	 */
+	public AchromatopsiaTest() {
+		initialize();
+		UIUtil.setFrameCenter(mainFrame); // 设置窗口居中
+	}
+
+	/**
+	 * 初始化窗口的内容
+	 */
+	private void initialize() {
+		mainFrame = new JFrame("色盲检测"); // 实例化主窗口
+
+		modelArea = new JTextArea(); // 实例化标准色彩文本域
+		modelArea.setColumns(20); // 设置标准色彩文本域的列数
+		modelArea.setRows(6); // 设置标准色彩文本域的行数
+		modelArea.setEditable(false); // 设置标准色彩文本域为不可编辑
+
+		userArea = new JTextArea(); // 实例化用户混合色彩文本域
+		userArea.setColumns(20); // 设置用户混合色彩文本域的列数
+		userArea.setRows(6); // 设置用户混合色彩文本域的行数
+		userArea.setEditable(false); // 设置用户混合色彩文本域为不可编辑
+
+		FlowLayout tmpLayout = new FlowLayout(); // 创建流式布局对象
+		tmpLayout.setHgap(20); // 设置两个文本域之间的距离
+
+		areaPanel = new JPanel(); // 初始化显示色彩文本域面板
+		areaPanel.setLayout(tmpLayout); // 设置显示色彩文本域面板的布局
+		areaPanel.add(modelArea); // 将标准色彩文本域添加到面板
+		areaPanel.add(userArea); // 将用户混合色彩文本域添加到面板
+
+		colorLabel = new JLabel[KIND]; // 初始化三原色颜色标签数组
+		minLabel = new JLabel[KIND]; // 初始化三原色最小值标签数组
+		colorValue = new JLabel[KIND]; // 初始化三原色值标签数组
+		maxLabel = new JLabel[KIND]; // 初始化三原色最大值标签数组
+		colorBar = new JScrollBar[KIND]; // 初始化三原色的调整条数组
+		barPanel = new JPanel[KIND]; // 初始化显示色彩文本域的面板数组
+		labelPanel = new JPanel[KIND]; // 初始化标签面板数组
+
+		// 实例化以上标签数组，并放入各自的面板中
+		for (int i = 0; i < KIND; i++) {
+			colorLabel[i] = new JLabel(COLORS[i]);
+			colorLabel[i].setFont(new Font("微软雅黑", Font.PLAIN, 15));
+			minLabel[i] = new JLabel("最小值(0)");
+			colorValue[i] = new JLabel("255");
+			colorValue[i].setFont(new Font("微软雅黑", Font.PLAIN, 15));
+			maxLabel[i] = new JLabel("最大值(255)");
+			colorBar[i] = new JScrollBar(JScrollBar.HORIZONTAL, MAX - 1, 1, MIN, MAX);
+			colorBar[i].addAdjustmentListener(new AdjustmentListener() {
+				@Override
+				public void adjustmentValueChanged(AdjustmentEvent e) {
+					int red, green, blue;
+
+					red = colorBar[0].getValue();
+					green = colorBar[1].getValue();
+					blue = colorBar[2].getValue();
+
+					userArea.setBackground(new Color(red, green, blue));
+					colorValue[i].setText(colorBar[i].getValue());
+				}
+			});
+			barPanel[i] = new JPanel();
+			barPanel[i].setLayout(new BorderLayout());
+			labelPanel[i] = new JPanel();
+			labelPanel[i].setLayout(new BorderLayout());
+			barPanel[i].add(colorLabel[i], BorderLayout.LINE_START);
+			barPanel[i].add(colorBar[i], BorderLayout.CENTER);
+			barPanel[i].add(colorValue[i], BorderLayout.LINE_END);
+			labelPanel[i].add(minLabel[i], BorderLayout.LINE_START);
+			labelPanel[i].add(maxLabel[i], BorderLayout.LINE_END);
+		}
+
+		handleButton = new HandleButtonClick(); // 实例化按钮单击事件
+		nextButton = new JButton("开始"); // 实例化开始按钮
+		nextButton.addActionListener(handleButton); // 添加按钮响应事件
+		okButton = new JButton("确定"); // 实例化确定按钮
+		okButton.setEnabled(false); // 设置确定按钮为不可用
+		okButton.addActionListener(handleButton); // 添加按钮响应事件
+
+		buttonPanel = new JPanel(); // 实例化按钮面板
+		buttonPanel.setLayout(new FlowLayout()); // 设置按钮面板的布局为流式布局
+		buttonPanel.add(nextButton); // 把开始按钮加入面板
+		buttonPanel.add(okButton); // 把确定按钮加入面板
+
+		con = mainFrame.getContentPane(); // 初始化放置面板的容器
+		con.setLayout(new BoxLayout(con, BoxLayout.Y_AXIS)); // 设置BoxLayout布局，垂直布局
+		con.add(areaPanel);
+		for (int i = 0; i < KIND; i++) {
+			con.add(barPanel[i]);
+			con.add(labelPanel[i]);
+		}
+		con.add(buttonPanel);
+
+		mainFrame.setSize(400, 350); // 设置窗口初始大小
+		mainFrame.setVisible(true); // 设置窗口可见
+		mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 设置关闭按钮可关闭窗口
+	}
+}
